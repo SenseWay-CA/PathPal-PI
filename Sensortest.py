@@ -15,8 +15,8 @@ import adafruit_mpu6050
 
 def init_max30102():
     try:
-        hr = HeartRateMonitor
-        HeartRateMonitor.start_sensor(hr)
+        hr = HeartRateMonitor()
+        hr.start_sensor()
         print("[OK] MAX30102 initialized")
         return hr
     except Exception as e:
@@ -54,7 +54,6 @@ def init_lidar():
 # ---------------------------------------------------------------
 if __name__ == "__main__":
     print("Initializing sensors...")
-    init_max30102()
     mpu = init_mpu6050()
     lidar = init_lidar()
     hr = init_max30102()
