@@ -72,8 +72,10 @@ if __name__ == "__main__":
 
         # TF-Luna
         try:    
-            distance = lidar.read_data()
-            #lidar.print_data()
+            data = lidar.read_data()
+            distance = lidar.dist
+
+         
             
         except:
             distance = None
