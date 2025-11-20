@@ -4,7 +4,7 @@
 import time
 import board
 import busio
-from heartrate_monitor import HeartRateMonitor
+from hr2 import HeartRateMonitor
 import time
 from TfLunaI2C import TfLunaI2C
 import adafruit_mpu6050
