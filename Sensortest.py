@@ -48,7 +48,8 @@ def init_mpu6050():
 def init_lidar():
     try:
         lidar = TfLunaI2C()
-        print("[OK] TF-Luna initialized")
+        lidar.us = False
+        print(lidar)
         return lidar
     except Exception as e:
         print("[ERR] TF-Luna init:", e)
@@ -70,8 +71,10 @@ if __name__ == "__main__":
         red, ir = read_max30102()
 
         # TF-Luna
-        try:
-            distance = lidar.read()
+        try:    
+            distance = lidar.read_data()
+            #lidar.print_data()
+            
         except:
             distance = None
 
