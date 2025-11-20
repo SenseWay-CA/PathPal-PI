@@ -12,6 +12,7 @@ class HeartRateMonitor(object):
     """
 
     LOOP_TIME = 0.01
+    bpm = 0
 
     def __init__(self, print_raw=False, print_result=False):
         self.bpm = 0
