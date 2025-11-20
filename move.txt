@@ -1,0 +1,34 @@
+sudo apt install -y i2c-tools python3-smbus python3-pip
+
+pip3 install max30102
+
+import max30102
+import time
+
+m = max30102.MAX30102()   # uses I2C address 0x57 by default
+
+try:
+    while True:
+        red, ir = m.read_sequential()
+        print("Red:", red, "IR:", ir)
+        time.sleep(1)
+except KeyboardInterrupt:
+    pass
+finally:
+    m.shutdown()
+
+```````````````````````````````````````````````````````````````````````````````````
+git clone https://github.com/doug-burrell/max30102.git
+cd max30102
+python3 main.py
+
+
+from machine import SoftI2C, Pin
+from max30102 import MAX30102
+
+i2c = SoftI2C(sda=Pin(21), scl=Pin(22), freq=400000)
+sensor = MAX30102(i2c=i2c)
+sensor.setup_sensor()  # default config
+
+
+```````````````````````````````````````````````````````````````````````````````````````
