@@ -4,7 +4,7 @@
 import time
 import board
 import busio
-from heartrate_monitor import HeartRateMonitor
+from 
 import time
 from TfLunaI2C import TfLunaI2C
 import adafruit_mpu6050
@@ -15,9 +15,9 @@ import adafruit_mpu6050
 
 def init_max30102():
     try:
-        hr = HeartRateMonitor.start_sensor()
+        m = max30102.MAX30102()
         print("[OK] MAX30102 initialized")
-        return hr
+        return m
     except Exception as e:
         print("[ERR] MAX30102 init:", e)
 
@@ -56,13 +56,13 @@ if __name__ == "__main__":
     init_max30102()
     mpu = init_mpu6050()
     lidar = init_lidar()
-    hr = init_max30102()
+    m = init_max30102()
 
     print("\n All sensors active. Reading...\n")
 
     while True:
         # MAX30102
-        bpm = hr.bpm
+        red, ir = m.read_sequential()
 
         # TF-Luna
         try:    
@@ -82,7 +82,7 @@ if __name__ == "__main__":
             accel = gyro = None
 
         print("-------------------------------------------------------")
-        print("MAX30102 → BPM:", bpm)
+        print("MAX30102 → RED:", red, " IR:", ir)
         print("TF-Luna  → Distance:", distance, "cm")
 
         if accel and gyro:
