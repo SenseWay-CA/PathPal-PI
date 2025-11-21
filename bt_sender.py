@@ -1,7 +1,7 @@
-# bt_sender.py
 import bluetooth
 import threading
 import json
+import time
 
 class BluetoothSender:
     def __init__(self):
@@ -42,14 +42,21 @@ class BluetoothSender:
                 self.connected = True
                 
                 # Keep connection alive until broken
+                # FIX: Use time.sleep(1) instead of 'pass' to save CPU
                 while self.connected and self.running:
-                    pass  # The sending is handled by the send_data method
+                    time.sleep(1)
                     
             except Exception as e:
                 print(f"[BT] Connection lost/error: {e}")
+            finally:
+                # Clean up connection on error or disconnect
                 self.connected = False
                 if self.client_sock:
-                    self.client_sock.close()
+                    try:
+                        self.client_sock.close()
+                    except:
+                        pass
+                self.client_sock = None
 
     def send_data(self, data_dict):
         """Sends a dictionary as a JSON string followed by a newline."""
@@ -63,11 +70,21 @@ class BluetoothSender:
         except Exception as e:
             print(f"[BT] Send failed: {e}")
             self.connected = False
-            self.client_sock.close()
+            try:
+                self.client_sock.close()
+            except:
+                pass
+            self.client_sock = None
 
     def stop(self):
         self.running = False
         if self.server_sock:
-            self.server_sock.close()
+            try:
+                self.server_sock.close()
+            except:
+                pass
         if self.client_sock:
-            self.client_sock.close()
+            try:
+                self.client_sock.close()
+            except:
+                pass
