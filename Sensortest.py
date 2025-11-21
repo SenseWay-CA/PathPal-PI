@@ -1,6 +1,3 @@
-
-
-
 import time
 import board
 import busio
@@ -8,6 +5,7 @@ from hr2 import HeartRateMonitor
 import time
 from TfLunaI2C import TfLunaI2C
 import adafruit_mpu6050
+from bt_sender import BluetoothSender  
 
 # ---------------------------------------------------------------
 # MAX30102
@@ -58,6 +56,9 @@ if __name__ == "__main__":
     lidar = init_lidar()
     hr = init_max30102()
 
+    bt = BluetoothSender() 
+    bt.start()
+
     print("\n All sensors active. Reading...\n")
 
     while True:
@@ -80,6 +81,16 @@ if __name__ == "__main__":
             gyro  = mpu.gyro          # (x, y, z)
         else:
             accel = gyro = None
+
+
+        packet = {
+            "bpm": bpm,
+            "dist_cm": distance if distance is not None else 0,
+            "accel": accel if accel else [0,0,0],
+            "gyro": gyro if gyro else [0,0,0]
+        }    
+
+        bt.send_data(packet)
 
         print("-------------------------------------------------------")
         print("MAX30102 → BPM:", bpm)
