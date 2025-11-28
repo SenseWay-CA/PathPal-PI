@@ -52,18 +52,17 @@ def init_mpu6050():
 def init_lidar():
     try:
         lidar = TfLunaI2C()
-        lidar.us = False 
-        # Attempt a read to ensure it's actually there
+        # Verify it works immediately
         lidar.read_data()
         print("[OK] TF-Luna initialized")
         return lidar
     except Exception as e:
-        print(f"[ERR] TF-Luna init failed: {e}")
+        # Do not print stack trace, just simple error
+        print(f"[ERR] TF-Luna missing/disconnected")
         return None
 
 def init_camera():
-    if not CAMERA_AVAILABLE:
-        return None
+    if not CAMERA_AVAILABLE: return None
     try:
         picam2 = Picamera2()
         config = picam2.create_still_configuration(main={"size": (320, 240)})
@@ -84,8 +83,7 @@ def capture_frame_base64(cam):
         b64_bytes = base64.b64encode(stream.read())
         return b64_bytes.decode('utf-8')
     except Exception as e:
-        print(f"[CAM ERR] Capture failed: {e}")
-        # Return empty string, don't crash
+        print(f"[CAM ERR] Capture failed")
         return ""
 
 
@@ -112,6 +110,7 @@ if __name__ == "__main__":
 
     loop_count = 0 
     IMAGE_SEND_RATE = 10 
+    LIDAR_RETRY_RATE = 50 # Retry LiDAR only every 50 loops (~5 seconds)
 
     while True:
         loop_count += 1
@@ -129,15 +128,21 @@ if __name__ == "__main__":
             try: bpm = hr.bpm
             except: hr = None
 
-        # 2. LiDAR
-        if lidar is None: lidar = init_lidar()
+        # 2. LiDAR (THROTTLED RECONNECT)
+        # If LiDAR is disconnected, don't hammer the I2C bus every loop.
+        # Wait for the retry counter.
+        if lidar is None:
+            if loop_count % LIDAR_RETRY_RATE == 0:
+                lidar = init_lidar()
+        
         if lidar is not None:
             try:
                 lidar.read_data()
                 distance = lidar.dist
             except Exception as e:
-                print(f"[LIDAR ERR] {e}")
-                lidar = None
+                print(f"[LIDAR LOST] Sensor disconnected.")
+                lidar = None # Mark as dead so we stop trying for 5 seconds
+                distance = 0
 
         # 3. MPU6050
         if mpu is None: mpu = init_mpu6050()
