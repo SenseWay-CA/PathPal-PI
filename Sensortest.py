@@ -53,6 +53,8 @@ def init_lidar():
     try:
         lidar = TfLunaI2C()
         lidar.us = False 
+        # Attempt a read to ensure it's actually there
+        lidar.read_data()
         print("[OK] TF-Luna initialized")
         return lidar
     except Exception as e:
@@ -83,6 +85,7 @@ def capture_frame_base64(cam):
         return b64_bytes.decode('utf-8')
     except Exception as e:
         print(f"[CAM ERR] Capture failed: {e}")
+        # Return empty string, don't crash
         return ""
 
 
@@ -108,8 +111,6 @@ if __name__ == "__main__":
         bt = None 
 
     loop_count = 0 
-    
-    # Send image only every 10 loops to prevent Bluetooth congestion
     IMAGE_SEND_RATE = 10 
 
     while True:
@@ -124,36 +125,37 @@ if __name__ == "__main__":
 
         # 1. Heart Rate
         if hr is None: hr = init_max30102()
-        if hr:
+        if hr is not None:
             try: bpm = hr.bpm
             except: hr = None
 
         # 2. LiDAR
         if lidar is None: lidar = init_lidar()
-        if lidar:
+        if lidar is not None:
             try:
                 lidar.read_data()
                 distance = lidar.dist
-            except: lidar = None
+            except Exception as e:
+                print(f"[LIDAR ERR] {e}")
+                lidar = None
 
         # 3. MPU6050
         if mpu is None: mpu = init_mpu6050()
-        if mpu:
+        if mpu is not None:
             try:
                 accel = mpu.acceleration
                 gyro  = mpu.gyro
             except: mpu = None
 
-        # 4. Camera (THROTTLED)
-        # Only take picture if it matches the rate (e.g. every 10th loop)
+        # 4. Camera
         if loop_count % IMAGE_SEND_RATE == 0:
             if cam is None and CAMERA_AVAILABLE: cam = init_camera()
-            if cam:
+            if cam is not None:
                 try:
                     image_b64 = capture_frame_base64(cam)
                 except: cam = None
         else:
-            image_b64 = "" # Send empty string to save speed
+            image_b64 = ""
 
         # 5. Send Data
         packet = {
@@ -165,12 +167,12 @@ if __name__ == "__main__":
         }    
 
         if bt:
-            # This is now NON-BLOCKING thanks to the new bt_sender.py
             bt.send_data(packet)
 
         # 6. Console Status
         status = f"Loop {loop_count} | Dist: {distance}cm | BPM: {bpm}"
         if image_b64: status += " | [CAM SENT]"
+        if lidar is None: status += " | [LIDAR OFF]"
         print(status)
 
         time.sleep(0.1)

@@ -219,12 +219,6 @@ class TfLunaI2C:
         settings += "error:       " + str(self.error) + "\n"
         return settings
 
-    def __len__(self):
-        """ Place holder - Don't believe we will need this """
-
-    def __del__(self):
-        """ Place holder - Don't believe we will need this """
-
     @staticmethod
     def centimeters2feet(cm):
         """
