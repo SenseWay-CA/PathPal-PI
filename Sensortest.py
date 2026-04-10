@@ -17,12 +17,6 @@ except ImportError as e:
     print(f"[CRITICAL] Library missing: {e}")
 
 # Camera Imports
-try:
-    from picamera2 import Picamera2
-    CAMERA_AVAILABLE = True
-except ImportError:
-    print("[WARN] picamera2 library not found. Camera disabled.")
-    CAMERA_AVAILABLE = False
 
 
 # ---------------------------------------------------------------
@@ -61,30 +55,8 @@ def init_lidar():
         print(f"[ERR] TF-Luna missing/disconnected")
         return None
 
-def init_camera():
-    if not CAMERA_AVAILABLE: return None
-    try:
-        picam2 = Picamera2()
-        config = picam2.create_still_configuration(main={"size": (320, 240)})
-        picam2.configure(config)
-        picam2.start()
-        print("[OK] Pi Camera 3 initialized")
-        return picam2
-    except Exception as e:
-        print(f"[ERR] Camera init failed: {e}")
-        return None
 
-def capture_frame_base64(cam):
-    if cam is None: return ""
-    try:
-        stream = io.BytesIO()
-        cam.capture_file(stream, format='jpeg')
-        stream.seek(0)
-        b64_bytes = base64.b64encode(stream.read())
-        return b64_bytes.decode('utf-8')
-    except Exception as e:
-        print(f"[CAM ERR] Capture failed")
-        return ""
+
 
 
 # ---------------------------------------------------------------
@@ -98,7 +70,7 @@ if __name__ == "__main__":
     mpu = init_mpu6050()
     lidar = init_lidar()
     hr = init_max30102()
-    cam = init_camera()
+    
 
     try:
         bt = BluetoothSender() 
@@ -109,7 +81,7 @@ if __name__ == "__main__":
         bt = None 
 
     loop_count = 0 
-    IMAGE_SEND_RATE = 10 
+     
     LIDAR_RETRY_RATE = 50 # Retry LiDAR only every 50 loops (~5 seconds)
 
     while True:
@@ -120,7 +92,7 @@ if __name__ == "__main__":
         distance = 0
         accel = [0, 0, 0]
         gyro = [0, 0, 0]
-        image_b64 = ""
+  
 
         # 1. Heart Rate
         if hr is None: hr = init_max30102()
@@ -153,14 +125,7 @@ if __name__ == "__main__":
             except: mpu = None
 
         # 4. Camera
-        if loop_count % IMAGE_SEND_RATE == 0:
-            if cam is None and CAMERA_AVAILABLE: cam = init_camera()
-            if cam is not None:
-                try:
-                    image_b64 = capture_frame_base64(cam)
-                except: cam = None
-        else:
-            image_b64 = ""
+        
 
         # 5. Send Data
         packet = {
@@ -168,7 +133,7 @@ if __name__ == "__main__":
             "dist_cm": distance if distance is not None else 0,
             "accel": accel,
             "gyro": gyro,
-            "image": image_b64
+            
         }    
 
         if bt:
@@ -176,7 +141,7 @@ if __name__ == "__main__":
 
         # 6. Console Status
         status = f"Loop {loop_count} | Dist: {distance}cm | BPM: {bpm}"
-        if image_b64: status += " | [CAM SENT]"
+        
         if lidar is None: status += " | [LIDAR OFF]"
         print(status)
 
