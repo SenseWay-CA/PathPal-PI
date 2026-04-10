@@ -13,6 +13,7 @@ try:
     from TfLunaI2C import TfLunaI2C
     import adafruit_mpu6050
     from bt_sender import BluetoothSender 
+    from gpiozero import RGBLED  # <--- ADD THIS LINE
 except ImportError as e:
     print(f"[CRITICAL] Library missing: {e}")
 
@@ -55,6 +56,22 @@ def init_lidar():
         print(f"[ERR] TF-Luna missing/disconnected")
         return None
 
+def init_status_led():
+    try:
+        # gpiozero uses BCM GPIO numbers (12, 13, 18)
+        # pwm=True allows color mixing and brightness control
+        led = RGBLED(red=12, green=13, blue=18, pwm=True)
+        
+        # Flash white briefly to prove it works
+        led.color = (1, 1, 1) 
+        time.sleep(0.5)
+        led.color = (0, 0, 0) # Turn off
+        
+        print("[OK] RGB Status LED initialized")
+        return led
+    except Exception as e:
+        print(f"[ERR] LED init failed: {e}")
+        return None
 
 
 
@@ -70,6 +87,7 @@ if __name__ == "__main__":
     mpu = init_mpu6050()
     lidar = init_lidar()
     hr = init_max30102()
+    status_led = init_status_led() # <--- ADD THIS LINE
     
 
     try:
@@ -83,6 +101,10 @@ if __name__ == "__main__":
     loop_count = 0 
      
     LIDAR_RETRY_RATE = 50 # Retry LiDAR only every 50 loops (~5 seconds)
+
+    if status_led:
+        status_led.color = (0, 0, 1)
+
 
     while True:
         loop_count += 1
@@ -145,4 +167,17 @@ if __name__ == "__main__":
         if lidar is None: status += " | [LIDAR OFF]"
         print(status)
 
+        if status_led:
+            if lidar is None:
+                # System Error -> RED
+                status_led.color = (1, 0, 0) 
+            elif bt and bt.connected:
+                # Everything working & Phone connected -> GREEN
+                status_led.color = (0, 1, 0) 
+            else:
+                # Working but no phone connected -> BLUE
+                status_led.color = (0, 0, 1) 
+
         time.sleep(0.1)
+
+   
